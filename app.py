@@ -21,8 +21,9 @@ import runner
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, dev_mode=False):
         super().__init__()
+        self.dev_mode = dev_mode
         self.setWindowTitle("Lexloop")
         self.setMinimumWidth(500)
 
@@ -70,15 +71,17 @@ class MainWindow(QMainWindow):
         QApplication.processEvents()
 
         try:
-            summary = runner.run(file_path)
+            summary = runner.run(file_path, dev_mode=self.dev_mode)
             self.status_label.setText(summary)
         except Exception as e:
             self.status_label.setText(f"Error: {e}")
 
 
 def main():
-    app = QApplication(sys.argv)
-    window = MainWindow()
+    dev_mode = "--dev" in sys.argv
+    argv = [a for a in sys.argv if a != "--dev"]
+    app = QApplication(argv)
+    window = MainWindow(dev_mode=dev_mode)
     window.show()
     sys.exit(app.exec())
 

@@ -11,11 +11,23 @@ import server
 import templates
 
 
-def get_base_dir():
-    """Return the base directory for locating tests/ and views/."""
-    if getattr(sys, "frozen", False):
-        return sys._MEIPASS
-    return os.path.dirname(os.path.abspath(__file__))
+def _get_src_dir(file_path, dev_mode):
+    """Return the src directory containing tests/ and views/.
+
+    In dev mode, source from the repo's src/ directory.
+    In deploy mode, source from <dsl_dir>/lexloop/src/.
+    """
+    if dev_mode:
+        repo_dir = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(repo_dir, "src")
+    dsl_dir = os.path.dirname(os.path.abspath(file_path))
+    return os.path.join(dsl_dir, "lexloop", "src")
+
+
+def _get_output_dir(file_path):
+    """Return the HTML output directory: <dsl_dir>/lexloop/html/."""
+    dsl_dir = os.path.dirname(os.path.abspath(file_path))
+    return os.path.join(dsl_dir, "lexloop", "html")
 
 
 def _load_modules(directory, entry_point, parsed_data):
@@ -53,10 +65,10 @@ def _load_modules(directory, entry_point, parsed_data):
     return results
 
 
-def run(file_path, port=8000):
+def run(file_path, dev_mode=False, port=8000):
     """Run the full pipeline. Returns a status summary string."""
-    base_dir = get_base_dir()
-    output_dir = os.path.join(base_dir, "output")
+    src_dir = _get_src_dir(file_path, dev_mode)
+    output_dir = _get_output_dir(file_path)
     os.makedirs(os.path.join(output_dir, "tests"), exist_ok=True)
     os.makedirs(os.path.join(output_dir, "views"), exist_ok=True)
 
@@ -75,11 +87,11 @@ def run(file_path, port=8000):
         return "Parse error — see browser"
 
     # Step 2: Run tests
-    tests_dir = os.path.join(base_dir, "tests")
+    tests_dir = os.path.join(src_dir, "tests")
     test_results = _load_modules(tests_dir, "run", parsed_data)
 
     # Step 3: Run views
-    views_dir = os.path.join(base_dir, "views")
+    views_dir = os.path.join(src_dir, "views")
     view_results = _load_modules(views_dir, "render", parsed_data)
 
     # Step 4: Generate HTML
