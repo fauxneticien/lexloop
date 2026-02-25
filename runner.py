@@ -3,12 +3,15 @@
 import importlib.util
 import os
 import sys
+import tempfile
 import time
 import traceback
 
 import parser as dsl_parser
 import server
 import templates
+
+_output_dir = None
 
 
 def _get_src_dir(file_path, dev_mode):
@@ -24,10 +27,12 @@ def _get_src_dir(file_path, dev_mode):
     return os.path.join(dsl_dir, "lexloop", "src")
 
 
-def _get_output_dir(file_path):
-    """Return the HTML output directory: <dsl_dir>/lexloop/html/."""
-    dsl_dir = os.path.dirname(os.path.abspath(file_path))
-    return os.path.join(dsl_dir, "lexloop", "html")
+def _get_output_dir():
+    """Return a temporary directory for HTML output, created once per session."""
+    global _output_dir
+    if _output_dir is None:
+        _output_dir = tempfile.mkdtemp(prefix="lexloop_")
+    return _output_dir
 
 
 def _load_modules(directory, entry_point, parsed_data):
@@ -68,7 +73,7 @@ def _load_modules(directory, entry_point, parsed_data):
 def run(file_path, dev_mode=False, port=8000):
     """Run the full pipeline. Returns a status summary string."""
     src_dir = _get_src_dir(file_path, dev_mode)
-    output_dir = _get_output_dir(file_path)
+    output_dir = _get_output_dir()
     os.makedirs(os.path.join(output_dir, "tests"), exist_ok=True)
     os.makedirs(os.path.join(output_dir, "views"), exist_ok=True)
 
